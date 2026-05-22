@@ -2,9 +2,14 @@
 
 > Training a recurrent-depth transformer for a **single loop**, then iterating
 > that one block at inference, reaches **256× the trained depth at 100%
-> accuracy** on algorithmic reasoning tasks — for ~7 minutes of training.
-> I also show this advantage **does not (yet) survive to 1 B-token real-text
-> language models**, and give the mechanistic reason why.
+> accuracy** on algorithmic reasoning tasks — for ~7 minutes of training,
+> with a **31K-parameter adapter** as the production recipe floor. Pushing
+> the same recipe family wider extends this to **4096× train depth**
+> (multi-pass) and **64× single-pass** with an architectural variant that
+> contradicts the program's own 2× single-pass observation. The
+> parameter-efficiency claim does **not (yet) survive** to 1 B-token raw
+> web text, but a recurrent variant does win **head-to-head against a
+> dense baseline on reasoning-mix at the same scale**.
 
 This repository is a curated writeup of a multi-week independent research
 program on **recurrent-depth transformers** — a single shared transformer
@@ -27,7 +32,7 @@ the architecture.
 
 ---
 
-## The four results
+## The six results
 
 ### 1. Length extrapolation is a supervision property, not an architecture property
 [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md)
@@ -113,6 +118,58 @@ depth mechanism literature does not have testable claims. The cleanest
 *describable* observation in the area is in search of its first
 *falsifiable* mechanism.
 
+### 5. Production recipe — 31K trainable params, hardcoded halt, multi-task
+[`writeup/05-production-recipe.md`](writeup/05-production-recipe.md)
+
+Tightening writeup 2's "9-minute LoRA r=8 + halt head" pipeline to its
+floor:
+
+- **Attn-only LoRA r=4 → 31K trainable params** (5.6× cheaper than the
+  175K-param recipe, identical accuracy at trained depth and at
+  user_k=256).
+- **Hardcoded `halt(r,k) = r≥k` → 0 halt parameters** (identical
+  calibration to a 367K-param trained halt head — the head was learning
+  to approximate the hardcoded rule).
+- **One 31K adapter holds chain + listops** without measurable accuracy
+  loss, and halves catastrophic forgetting compared to sequential
+  single-task FT.
+- **Counterintuitive**: smaller `n_train` extrapolates *better* under
+  multi-pass. `n_train=1` is the floor and the optimum.
+- The whole recipe transfers to a **~600M-param base** (K-AZ), reaching
+  user_k=256 at trained-depth accuracy with no recipe changes.
+
+Min-cost adaptive-compute substrate: **61 s of base training, 31K trainable
+adapter params, 0 halt params**. The result connects back to writeup 4:
+the architecture is doing most of the work for free; supervision +
+inference recipe is what makes it controllable.
+
+### 6. The extrapolation frontier — and a recipe that breaks single-pass
+[`writeup/06-extrapolation-frontier.md`](writeup/06-extrapolation-frontier.md)
+
+Pushing the multi-pass envelope wider, and finding one architectural
+variant that contradicts writeup 4's single-pass observation:
+
+- **K = 4096 (512× train depth)** on chain V=12 with `pcc_hr_hybrid`
+  d=1280 + noise injection — 16× the 256× number in writeup 2.
+- **K = 2048 (1024× train depth)** on arithmetic reduction with `n=2 +
+  noise` — the biggest extrapolation ratio in the program.
+- **Modular sum solved at trained depth** (100% at K=8, vs 8% baseline)
+  with noise + high-batch + extended `n_loops` — partial rescue of the
+  boundary case writeup 1 flags.
+- **Single-pass 64× extrapolation** with an `xloop + linear stabiliser`
+  architecture — directly contradicts writeup 4's 2-2.5× single-pass
+  observation, demonstrating that the 2× ratio is recipe-bounded, not
+  architecture-bounded.
+- **First real-text head-to-head won by a recurrent variant**:
+  `pcc_hr_hybrid d=1280 × 6 loops` (118M) beats `vanilla d=2048` (153M)
+  by 0.07 nats val loss on reasoning-mix at 1 B tokens — scoping
+  NEGATIVE_RESULTS §1 from "vanilla wins everywhere" to "vanilla wins on
+  raw web, hybrid wins on reasoning-mix."
+
+Together with writeups 4 and 5, this sharpens the open mechanism question:
+the 2× ratio is real *for the specific recipe family*, but it can be
+shifted by an order of magnitude with the right architectural lever.
+
 ---
 
 ## What does NOT work (and why that matters)
@@ -150,6 +207,8 @@ writeup/
   02-test-time-compute.md     train n=1 → 256× inference depth; halt control
   03-controllable-solver.md   composition via orchestration (0% → 100%)
   04-mechanism-audit.md       2-2.5× single-pass observation; 5 falsified mechanisms
+  05-production-recipe.md     31K-param adapter, hardcoded halt, multi-task, scaling
+  06-extrapolation-frontier.md K=4096 multi-pass; 64× single-pass; reasoning-mix win
 NEGATIVE_RESULTS.md            retractions, scale limits, null results
 src/model.py                  the looped/pcc/hr transformer (reference impl)
 results/                      key figures (seed-pinned, methodology in writeups)

@@ -41,6 +41,14 @@ Single-pass at K=256 with the same checkpoints collapses to 0.14–0.38. The
 gain is entirely from the iterate-then-feed-back inference loop, with zero
 extra parameters in the stability-halt case.
 
+The 256× number above is the conservative envelope. Pushing wider
+checkpoints (d=1280, 118M) with noise injection during training extends
+this to **K=4096 (512× train depth) at 100%** on chain V=12, and a
+smaller arithmetic-reduction model reaches **K=2048 (1024× train depth)**
+under the same recipe family. Those numbers and the seed-fragility caveats
+that come with them are written up separately in
+[writeup 6](06-extrapolation-frontier.md).
+
 ![decoupled iter + halt calibration](../results/decoupled_iter_halt.png)
 ![compute-accuracy Pareto: adaptive halt vs fixed-r](../results/halt_pareto.png)
 
