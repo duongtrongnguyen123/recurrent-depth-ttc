@@ -68,7 +68,56 @@ micro-batch bought either a regression or a +3.5% that did not justify the
 memory cost or the eff-batch confound. Dropped. Cost of finding out:
 ~24 GPU-minutes. Cheaper than committing a multi-day run to a wrong assumption.
 
-## 5. Scope limits that bound the positive results
+## 5. WSD-decay can degrade reasoning capability post-CoT-SFT
+
+A vanilla 900M model (d=2048, 16 layers) trained 14 B tokens on FineWeb-Edu
+was evaluated on text / math / code / reasoning prompts in three conditions:
+
+- **s12 base** (pretrain only, no decay, no CoT-SFT)
+- **s12 + CoT-SFT** (5 000 steps LoRA on math+general CoT mix, no WSD decay)
+- **s12 + WSD-decay + CoT-SFT** (decay phase added before CoT-SFT)
+
+The intuition was that the decay phase — standard practice in the
+warmup-stable-decay schedule — would improve downstream capability uniformly.
+On qualitative inference probes it does the **opposite** on some tasks:
+
+| prompt | s12 base | s12 + CoT-SFT | s12 + decay + CoT-SFT |
+|---|---|---|---|
+| `def fibonacci(n):` | real list `[0,1,1,2,3,5,8,13,21,…]` | `return fibonacci(n-1) + fibonacci(n-2)` *(correct recursion)* | `# return fibonacci(n-1) + fibonacci(n-2)` *(only a comment)* |
+| `Solve 3x+7=22, x=` | garbage | **shows work:** `3x = 22 − 7`, isolates variable | garbage `Question 2, 3, 4 …` |
+| French Revolution facts | tautology | "Girondins, constitutional monarchy" *(historically accurate)* | "Rousseau led" *(wrong)* |
+
+Working hypothesis: the decay phase fine-tunes the base model toward the
+text distribution at a lower learning rate, which **overwrites** some of the
+content / reasoning capability that downstream CoT-SFT is trying to surface.
+Order-of-operations matters more than the individual steps; "decay then
+CoT-SFT" is not strictly superior to "CoT-SFT directly on the stable
+checkpoint."
+
+A single-model, single-eval observation — not a general claim about WSD.
+Reported here because the field tends to treat decay as monotone-good. On
+these prompts at this scale, it is not.
+
+## 6. Vanilla matches looped on the same algorithmic recipe — supervision is the lever
+
+A natural reading of writeups 1–2 is "looped recurrence is what extrapolates."
+The data does not say that. Control: train a **vanilla** transformer on the
+same chain task with the same iter-target + noise supervision, then multi-pass
+at inference. Result: vanilla also reaches **100% accuracy at 16× the trained
+depth** and **breaks the multi-token state ceiling at K=48** — matching the
+looped result at similar small scale.
+
+The architectural claim "looped is necessary for inference-depth scaling"
+does not hold under control. The supervision claim ("per-step iter-target is
+necessary") does hold — vanilla with per-final-answer supervision walls just
+like looped does. **The lever is the loss, the architecture is downstream.**
+
+Why looped is still preferred at scale: parameter efficiency (4 shared blocks
+vs. N distinct ones), simpler runtime knob (`r` is one integer), and
+constant-per-step FLOPs. But these are economic advantages, not capability
+advantages.
+
+## 7. Scope limits that bound the positive results
 
 - **Algorithmic, small-scale.** The clean extrapolation / multi-pass /
   composition results are at d ≤ 1280, vocab ≤ 27, synthetic generators.

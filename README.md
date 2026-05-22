@@ -27,7 +27,7 @@ the architecture.
 
 ---
 
-## The three results
+## The four results
 
 ### 1. Length extrapolation is a supervision property, not an architecture property
 [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md)
@@ -80,6 +80,39 @@ structure belongs in the scheduler (a planner / LLM / search), not baked
 into the weights. This is the concrete, minimal version of the
 "reasoning = recurrent operator + external scratchpad" pattern.
 
+### 4. The mechanism audit: a clean observation with no surviving explanation
+[`writeup/04-mechanism-audit.md`](writeup/04-mechanism-audit.md)
+
+Pin down the single-pass extrapolation ratio: under iter-target on chain
+V=12 at NL ∈ {4, 8, 16}, **collapse depth ≈ 2.06 · NL** (slope of a linear
+fit through three points; ratio drifts down with larger NL — a clean
+empirical observation, not a proven law).
+
+Then audit the natural follow-up: *why ≈ 2×?* Five mechanism hypotheses
+were pre-registered, tested on two independent compute streams, and
+filed under "falsified":
+
+1. **Trajectory geometry** (angular spread) — sign reversed from prediction.
+2. **State-space coverage** (exposure bias) — overlap measured = 1.0, no
+   gap exists yet collapse still occurs.
+3. **LayerNorm-induced drift** — predicts task-invariant collapse, fails to
+   discriminate chain (collapse ≈ 2·NL) from modular sum (collapse ≈ NL).
+4. **Contraction is causal** — forcing contraction with a regularizer
+   **halved** the extrapolation horizon. Contraction is a co-occurring
+   symptom, not the mechanism.
+5. **Decoder Jacobian shape** — non-monotonic, non-predictive.
+
+What survives the audit: the empirical observation, and writeup 1's
+dissociation between supervision regimes. The mechanism question is
+genuinely open.
+
+The point of the audit is not the negative results themselves — it is the
+**methodology**: pre-register the prediction, state what would falsify
+it, verify on two independent streams. By that bar, much of the recurrent-
+depth mechanism literature does not have testable claims. The cleanest
+*describable* observation in the area is in search of its first
+*falsifiable* mechanism.
+
 ---
 
 ## What does NOT work (and why that matters)
@@ -96,6 +129,12 @@ into the weights. This is the concrete, minimal version of the
   tokenization artifact was caught** — it was retracted and re-derived.
 - A throughput optimization (larger micro-batch) was benchmarked,
   found to be net-negative, and dropped.
+- **WSD decay can degrade reasoning** — a 900M model after CoT-SFT alone
+  outperforms the same model after decay+CoT-SFT on algebra workflow,
+  recursive code, and history facts. Order-of-operations matters.
+- **Vanilla matches looped under the same recipe** — `vanilla + iter-target
+  + multipass` reaches 100% at 16× train depth, breaking the multi-token
+  state ceiling. Architecture is not the lever; supervision is.
 
 These are here because they are the actual content of doing research
 honestly. The boundary of a claim is part of the claim.
@@ -110,6 +149,7 @@ writeup/
   01-supervision-lever.md     iter-target vs per-answer; the parity control
   02-test-time-compute.md     train n=1 → 256× inference depth; halt control
   03-controllable-solver.md   composition via orchestration (0% → 100%)
+  04-mechanism-audit.md       2-2.5× single-pass observation; 5 falsified mechanisms
 NEGATIVE_RESULTS.md            retractions, scale limits, null results
 src/model.py                  the looped/pcc/hr transformer (reference impl)
 results/                      key figures (seed-pinned, methodology in writeups)
