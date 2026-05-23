@@ -32,7 +32,7 @@ the architecture.
 
 ---
 
-## The six results
+## The seven results
 
 ### 1. Length extrapolation is a supervision property, not an architecture property
 [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md)
@@ -170,6 +170,45 @@ Together with writeups 4 and 5, this sharpens the open mechanism question:
 the 2× ratio is real *for the specific recipe family*, but it can be
 shifted by an order of magnitude with the right architectural lever.
 
+### 7. No universal recipe — task-family × training-recipe interaction matrix
+[`writeup/07-task-family-recipe-interaction.md`](writeup/07-task-family-recipe-interaction.md)
+
+4-variant × 4-seed × 3-task matrix testing whether Huginn paper's
+"production" recipe (random-r training + truncated BPTT + LTI) generalizes
+across task families. **The same engineering choice (random-r training)
+HELPS one task by +0.51 and HURTS another by −0.51, with symmetric
+absolute effect on the same lever.**
+
+| variant | chain (V=12/24) | modular P=13 | parity (uk=4, 2× trained) |
+|---|:---:|:---:|:---:|
+| bp_baseline | 1.000 | **0.962 ± 0.045** | 0.486 ± 0.029 |
+| bp_plus_lti | 1.000 | 0.961 ± 0.065 | 0.484 ± 0.030 |
+| bp_plus_random_r | 1.000 | **0.450 ± 0.142** (HURTS) | **1.000 ± 0.000** (RESCUES) |
+| bp_full_huginn | 1.000 | 0.237 ± 0.032 (catastrophe) | 1.000 ± 0.000 then walls |
+
+**Mechanism**: parity needs a *counter* the iter-target supervision lacks at
+small `n_train`; random-r exposure provides it. Modular needs *consistent
+carry across loops*; random-r breaks per-depth gradient signal density.
+The mechanism that helps one structure hurts the other.
+
+This falsifies both opposing claims simultaneously:
+- *"Huginn engineering is universally good"* (paper's framing) — refuted
+  by modular.
+- *"Huginn engineering is universally bad at small scale"* — refuted by
+  parity.
+
+Production implication: **identify per-step rule structure first; recipe
+follows from it**, not the other way around. A single "default" recipe
+applied to all task families will produce 50+ pp regressions on the wrong
+family.
+
+This writeup also retracts an earlier single-seed CC2 claim that LTI
+architecturally helped modular (phantom Δ from baseline outlier seed —
+detected on 4-seed verify of both variants). The standing methodological
+rule: **when claiming variant A beats variant B, multi-seed BOTH A and B**
+— multi-seeding only the new variant lets baseline outliers create
+phantom effects.
+
 ---
 
 ## What does NOT work (and why that matters)
@@ -209,6 +248,7 @@ writeup/
   04-mechanism-audit.md       2-2.5× single-pass observation; 5 falsified mechanisms
   05-production-recipe.md     31K-param adapter, hardcoded halt, multi-task, scaling
   06-extrapolation-frontier.md K=4096 multi-pass; 64× single-pass; reasoning-mix win
+  07-task-family-recipe-interaction.md  no universal recipe — same lever ±0.51 on diff tasks
 NEGATIVE_RESULTS.md            retractions, scale limits, null results
 src/model.py                  the looped/pcc/hr transformer (reference impl)
 results/                      key figures (seed-pinned, methodology in writeups)
