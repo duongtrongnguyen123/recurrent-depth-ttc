@@ -113,7 +113,10 @@ loop r; correlate with per-r accuracy.
 
 After five pre-registered tests on two independent streams:
 
-- **The empirical observation** (≈ 2–2.5 × NL on chain V=12) is robust.
+- **The empirical observation** (≈ 2–2.5 × NL on chain V=12) holds for this
+  recipe family, but is recipe-bounded — writeup 6 breaks it to 64× with a
+  different architectural variant. Treat 2× as a property of the recipe, not
+  of recurrent depth.
 - **The dissociation** (writeup 1: supervision sets dynamical regime) is
   robust.
 - **The mechanism question** ("what dynamical property of the block sets

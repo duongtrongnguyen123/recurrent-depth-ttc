@@ -90,8 +90,10 @@ predicted in writeup 1.
 observation, and the contradiction is real.**
 
 Writeup 4 establishes: under iter-target on chain V=12 at NL ∈ {4, 8, 16},
-single-pass collapse depth is ≈ 2 · NL. That observation is robust under
-the recipe used in writeups 1-5 (pcc / pcc_hr_hybrid).
+single-pass collapse depth is ≈ 2 · NL. This is a three-point linear-fit trend
+for the pcc / pcc_hr_hybrid recipe family used in writeups 1-5, and the ratio
+drifts down with larger NL — so it is a recipe-bounded empirical observation,
+**not a law**. The result below shows just how recipe-bounded it is.
 
 A different architectural variant — `xloop` (per-loop QKV bias + cross-loop
 attention) augmented with a **linear stabiliser** that bounds per-step

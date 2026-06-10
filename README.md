@@ -32,7 +32,7 @@ the architecture.
 
 ---
 
-## The seven results
+## The eight results
 
 ### 1. Length extrapolation is a supervision property, not an architecture property
 [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md)
@@ -209,6 +209,30 @@ rule: **when claiming variant A beats variant B, multi-seed BOTH A and B**
 — multi-seeding only the new variant lets baseline outliers create
 phantom effects.
 
+### 8. Cross-architecture at real-text scale: the synthetic wins do not (yet) transfer
+[`writeup/08-cross-architecture-phase2.md`](writeup/08-cross-architecture-phase2.md)
+
+Four architectures (PCC 356M, xloop 356M, vanilla 500M/912M) pretrained on the
+**same 50B-token canonical mix**, compared head-to-head. The headline is a
+quantified negative: **no recurrent variant beats the matched dense baseline
+beyond the noise of pretraining itself** (per-wave GSM8K std dev = ±0.60pp;
+cross-architecture differences sit inside that band). The one reasoning signal
+that clears the noise — HARD50 sampling-TTC — favours the *dense* model
+(vanilla 500M best-of-K=20 = 90%, matching vanilla 912M at K=100).
+
+What *is* recurrent-specific and measurable is the geometry: a sharper local
+minimum (κ ≈ 33 PCC vs 12 vanilla 912M), a U-shaped loss over inference depth,
+and a **state fixed-point** mechanism — applying the shared W_Q/W_K/W_V across
+loops, all three projections cohere at once (cos ≈ 0.97/0.98/0.86 for PCC),
+which only the hypothesis "`h_r` itself reaches a fixed point of `Block(·)`"
+explains (a W_Q-only power iteration would not collapse K and V in lockstep).
+These observations are correlational — the pretrains are not token-matched.
+
+Bottom line, consistent with writeups 1–7: **recurrence is a post-training
+mechanism for position-invariant per-step tasks, not a competitive pretraining
+architecture at this scale.** We make no claim to refute the published
+Huginn-3.5B numbers, which were obtained at 20–30× our token budget.
+
 ---
 
 ## What does NOT work (and why that matters)
@@ -249,6 +273,7 @@ writeup/
   05-production-recipe.md     31K-param adapter, hardcoded halt, multi-task, scaling
   06-extrapolation-frontier.md K=4096 multi-pass; 64× single-pass; reasoning-mix win
   07-task-family-recipe-interaction.md  no universal recipe — same lever ±0.51 on diff tasks
+  08-cross-architecture-phase2.md  50B-token 4-arch comparison; noise band; sharpness; Q/K/V fixed-point
 NEGATIVE_RESULTS.md            retractions, scale limits, null results
 src/model.py                  the looped/pcc/hr transformer (reference impl)
 results/                      key figures (seed-pinned, methodology in writeups)
@@ -266,8 +291,9 @@ ones.**
 
 ## Status
 
-The real-text scaling arm (Phase 1 → 2) is an ongoing program; the
-synthetic-task conclusions above are stable and reproduced across seeds.
-This repo is the curated subset that survived scrutiny.
+The real-text scaling arm (Phase 1 → 2) is summarised in writeup 8; its
+cross-architecture comparisons are correlational, pending a token-matched
+retrain. The synthetic-task conclusions (writeups 1–7) are stable and
+reproduced across seeds. This repo is the curated subset that survived scrutiny.
 
 _License: MIT. Independent research, 2026._

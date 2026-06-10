@@ -132,6 +132,24 @@ advantages.
   trained loop count (`r_per > n_loops_train`). The safe operating regime is
   stated alongside the headline number, not omitted.
 
+## 8. At sub-1B matched-data scale, architectural differences sit within pretraining noise
+
+The cleanest version of §1's negative. Across four architectures pretrained on
+the *same* 50B-token mix (PCC 356M, xloop 356M, vanilla 500M/912M, see
+[`writeup/08`](writeup/08-cross-architecture-phase2.md)), the per-wave variance
+of a *single* training run — measured at seven GSM8K-1319 checkpoints of vanilla
+500M — is **±0.60pp std dev** (range [1.82%, 3.41%]). Every cross-architecture
+difference we measured on standard benchmarks is smaller than, or comparable to,
+this band: xloop is +1.7σ above vanilla's mean (inside vanilla's own best-wave
+range), PCC +0.4σ.
+
+The methodological rule this forces: **a single-snapshot "architecture A beats
+B" claim at this scale is not interpretable without the per-wave noise band of
+one training run.** The one benchmark where an effect *does* clear the band
+(HARD50 sampling-TTC) favours the dense model, not recurrence. Independently
+corroborated by Lu et al. (COLM 2025) and MoDr (ICLR 2026). A token-matched
+retrain is the follow-up that would turn this from correlational to causal.
+
 ## Why this page exists
 
 Every positive result in this repository has a stated boundary, a
