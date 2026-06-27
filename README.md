@@ -1,15 +1,27 @@
 # Recurrent-Depth Transformers: when does looping beat width?
 
-> Training a recurrent-depth transformer for a **single loop**, then iterating
-> that one block at inference, reaches **256× the trained depth at 100%
-> accuracy** on algorithmic reasoning tasks — for ~7 minutes of training,
-> with a **31K-parameter adapter** as the production recipe floor. Pushing
-> the same recipe family wider extends this to **4096× train depth**
-> (multi-pass) and **64× single-pass** with an architectural variant that
-> contradicts the program's own 2× single-pass observation. The
-> parameter-efficiency claim does **not (yet) survive** to 1 B-token raw
-> web text, but a recurrent variant does win **head-to-head against a
-> dense baseline on reasoning-mix at the same scale**.
+#### A controlled study of looped transformers — what extra inference loops can and can't buy, at academically attainable scale.
+
+![python](https://img.shields.io/badge/python-3.8%2B-blue)
+![pytorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
+![license](https://img.shields.io/badge/license-MIT-green)
+![status](https://img.shields.io/badge/results-8%20writeups%20%2B%20honest%20negatives-orange)
+
+> **Loop one transformer block instead of stacking N of them.** This repo asks
+> the question the literature is loud about but short on clean numbers for:
+> *when does that actually help — and when is it just an expensive way to do
+> what width already does?*
+
+### TL;DR
+
+| | finding |
+|---|---|
+| 🎯 | **Length extrapolation is a training-recipe property, not an architecture one.** With per-step supervision a single looped block extrapolates to **24× its trained depth** — but *only* if the per-step rule is position-invariant. Parity is the falsifier, and it walls exactly where the theory predicts. |
+| ⚡ | **A ~7-minute recipe for o1-style adaptive compute.** LoRA + multi-pass inference lets you *dial* depth per example, reaching **100% at up to 256× the trained depth** on a synthetic task — with a **31K-parameter** adapter and **zero** halt parameters. |
+| 🔬 | **The mechanism.** Probe Q/K/V across loops and all three collapse together → the hidden state reaches a **fixed point of `Block(·)`**, not a `W_Q` power iteration. |
+| 🧊 | **The honest negative (front and center).** At sub-1B params on real text, **no recurrent variant beats a matched dense baseline beyond pretraining noise** (±0.6pp on GSM8K). The big numbers above are controlled-scale — and this README says so out loud. |
+
+![length extrapolation under iterative-target supervision](results/length_extrap.png)
 
 This repository is a curated writeup of a multi-week independent research
 program on **recurrent-depth transformers** — a single shared transformer
