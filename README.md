@@ -44,6 +44,16 @@ the architecture.
 
 ---
 
+## Results at a glance
+
+The sub-1B cross-architecture half of the program in one figure — sharpness
+ladder, the one-LoRA-step sign-flip, the recurrent U-curve, sampling-TTC
+favouring dense, the post-training lever survey, and the key numbers:
+
+![six-panel synthesis](results/summary_6panel.png)
+
+---
+
 ## The eight results
 
 ### 1. Length extrapolation is a supervision property, not an architecture property

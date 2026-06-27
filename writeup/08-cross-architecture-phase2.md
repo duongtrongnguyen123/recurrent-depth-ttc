@@ -5,6 +5,12 @@ real-text scaling arm: four architectures pretrained on the **same 50B-token
 canonical mix** (FineWeb-Edu + DCLM + Cosmopedia + Stack-Edu + OpenWebMath +
 NuminaMath-CoT), then compared head-to-head.
 
+![six-panel synthesis of the sub-1B cross-architecture results](../results/summary_6panel.png)
+
+*The whole sub-1B story in one figure: (a) sharpness ladder, (b) the LoRA-step
+sign-flip, (c) the recurrent U-curve, (d) sampling-TTC favouring dense, (e) the
+post-training lever survey, (f) key numbers. Details below.*
+
 | architecture | shape | params | tokens (MAX) |
 |---|---|---:|---:|
 | PCC 356M | 2 prelude + 1 core ×6 + 2 coda | 355.9M | 30.95B |
