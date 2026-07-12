@@ -31,7 +31,7 @@ The extrapolation experiments use small synthetic sequence tasks for which the r
 
 | task | per-step rule | position-invariant? |
 |---|---|:---:|
-| **chain** (pointer walk) | follow a random symbol→successor table one step | yes |
+| **chain** (pointer walk) | each symbol points to a fixed next symbol; take one hop | yes |
 | **ListOps** | reduce the innermost `min` / `max` / `sum` operator | yes |
 | **modular** | `x ← (a·x + b) mod P` | yes |
 | **graph BFS** | expand the reachable frontier by one hop | yes |
