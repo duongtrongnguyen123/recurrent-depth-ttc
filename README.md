@@ -1,6 +1,6 @@
 # Recurrent-Depth Transformers: when does looping beat width?
 
-A controlled study of looped transformers — reusing one weight-tied block N times instead of stacking N distinct blocks (the Universal Transformer / Huginn / Ouro line). The question: when do extra inference loops buy real capability, and when are they just an expensive way to do what width already does?
+A controlled study of looped transformers — reusing one weight-tied block N times instead of stacking N distinct blocks (the Universal Transformer / Huginn / Ouro line). It maps where extra inference loops buy real capability and where they only reproduce what width already does.
 
 ![python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![pytorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
@@ -16,6 +16,15 @@ Prelude–Core–Coda (the Huginn shape): a few unique pre-layers, **one weight-
 - **The base model has no per-loop conditioning** (no loop-index embedding fed to the core). This matters when interpreting loop dynamics: an unconditioned shared block has no external signal telling it which loop it is on.
 
 Reference implementation with all variants (vanilla / looped / pcc / gated / …) is in [`src/model.py`](src/model.py).
+
+## Tasks
+
+The extrapolation experiments use small synthetic sequence tasks where the result after `r` steps is well-defined, so "run the loop `r` times" has a ground truth to score against.
+
+- **chain** (pointer walk): a random table maps each of `V` symbols to a successor. From a start symbol, the result after `r` steps is the symbol reached by following the pointer `r` times.
+- **parity**: over a bit string, the result after `r` steps is the XOR of the first `r` bits. Its per-step rule depends on the position `r` — which is exactly why it is used as a control.
+
+The full set is five such tasks (chain, ListOps, modular arithmetic, graph BFS, parity); per-task definitions and results are in [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
 
 ## Result 1 — how you supervise the loops decides whether it extrapolates
 
