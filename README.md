@@ -27,26 +27,26 @@ A reference implementation of all variants (vanilla / looped / pcc / gated / …
 
 ## Tasks
 
-The extrapolation experiments use small synthetic sequence tasks for which the result after `r` steps is well-defined, giving a ground-truth target for applying the loop `r` times. Whether a task extrapolates past the trained depth depends on a single property: whether its per-step rule depends on the loop index (Result 1).
+The extrapolation experiments use small synthetic sequence tasks for which the result after `r` steps is well-defined, giving a ground-truth target for applying the loop `r` times. Extrapolation past the trained depth tracks one property — whether the per-step rule depends on the loop index — with graph BFS showing that this condition is necessary but not sufficient (Result 1).
 
-| task | per-step rule | position-invariant? |
-|---|---|:---:|
-| **chain** (pointer walk) | each symbol points to a fixed next symbol; take one hop | yes |
-| **ListOps** | reduce the innermost `min` / `max` / `sum` operator | yes |
-| **modular** | `x ← (a·x + b) mod P` | yes |
-| **graph BFS** | expand the reachable frontier by one hop | yes |
-| **parity** | XOR in the bit at position `r` | **no** (depends on `r`) |
+| task | per-step rule | position-invariant? | extrapolates past trained depth? |
+|---|---|:---:|:---|
+| **chain** (pointer walk) | each symbol points to a fixed next symbol; take one hop | yes | yes, to ~24× |
+| **ListOps** | reduce the innermost `min` / `max` / `sum` operator | yes | yes (3–12×) |
+| **modular** | `x ← (a·x + b) mod P` | yes | yes, with noise injection (4–16×) |
+| **graph BFS** | expand the reachable frontier by one hop | yes | partial — capped near 50% by its multi-token state |
+| **parity** | XOR in the bit at position `r` | **no** (depends on `r`) | no — walls at the trained depth |
 
-Per-task definitions and results: [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
+Per-task definitions and full results: [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
 
 ## Result 1 — supervision, not architecture, determines length extrapolation
 
 Training the same looped model under two supervision schemes produces opposite behaviour beyond the trained depth.
 
 - Supervising only the final loop teaches the model to terminate; accuracy walls at the trained loop count.
-- Supervising every loop against the partial result after that many steps (iterative-target) teaches the model to iterate; accuracy is retained beyond the trained depth, to approximately 24× the trained loop count on the synthetic chain task.
+- Supervising every loop against the partial result after that many steps (iterative-target) teaches the model to iterate; accuracy is retained beyond the trained depth — to approximately 24× the trained loop count on the chain task, and to varying degrees on the other position-invariant tasks (see the Tasks table).
 
-The boundary is governed by a position-invariance condition, and it includes a control that fails as predicted. Extrapolation holds only when the per-step rule is a function of state rather than of the loop index. Parity, whose per-step rule depends on the loop index, walls exactly at the trained depth under either supervision scheme. This failing control distinguishes the result from an unfalsifiable observation.
+The boundary is governed by a position-invariance condition, and it includes a control that fails as predicted. Extrapolation requires the per-step rule to be a function of state rather than of the loop index. Parity, whose per-step rule depends on the loop index, walls exactly at the trained depth under either supervision scheme — the failing control that distinguishes this from an unfalsifiable observation. Graph BFS marks the other edge of the boundary: its rule is position-invariant, yet its multi-token state caps accuracy near 50%, so position-invariance is necessary but not sufficient.
 
 ![length extrapolation under iterative-target supervision](results/length_extrap.png)
 
