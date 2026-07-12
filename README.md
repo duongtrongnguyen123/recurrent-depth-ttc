@@ -6,7 +6,7 @@ Recurrent-depth transformers reuse one weight-tied block N times instead of stac
 ![pytorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-Two primary results are below. The remaining studies — sharpness / loss-landscape, a Q/K/V mechanism probe, a matched-data cross-architecture comparison, and composition — are in [`writeup/`](writeup/), with negatives in [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md). All experiments are small-scale and seed-pinned: controlled studies, not claims about production language models.
+Two results are below; the rest — sharpness, a mechanism probe, a cross-architecture comparison, composition, and the negatives — is in [`writeup/`](writeup/) and [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md). Everything is small-scale and seed-pinned: controlled studies, not production-LLM claims.
 
 ## Architecture
 
