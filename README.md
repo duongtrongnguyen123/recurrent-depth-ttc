@@ -6,11 +6,19 @@ Recurrent-depth transformers reuse one weight-tied block N times instead of stac
 ![pytorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-Two primary results are documented below. A loss-landscape / sharpness study, a Q/K/V mechanism probe, a matched-data cross-architecture comparison, a composition study, and the negative results are in [`writeup/`](writeup/) and [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md). All experiments are small-scale and seed-pinned, and are intended as controlled studies rather than claims about production language models.
+Two primary results are below. The remaining studies — sharpness / loss-landscape, a Q/K/V mechanism probe, a matched-data cross-architecture comparison, and composition — are in [`writeup/`](writeup/), with negatives in [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md). All experiments are small-scale and seed-pinned: controlled studies, not claims about production language models.
 
 ## Architecture
 
-The model follows the Prelude–Core–Coda (Huginn) shape: a small number of unique pre-layers, one weight-tied core block applied N times, and a small number of unique post-layers (`n_prelude` + core×N + `n_coda`), with the core sharing a single parameter set across all N loops.
+The model follows the Prelude–Core–Coda (Huginn) shape: unique pre-layers, one weight-tied core block applied N times, and unique post-layers.
+
+```
+tokens --> [ prelude ] --> [ core ] --> [ coda ] --> logits
+                           ^       |
+                           +-------+  x N
+```
+
+Prelude and coda are ordinary distinct layers; the core is a single weight-tied block reused on each of the N loops (`n_prelude` + core×N + `n_coda`).
 
 - N is fixed during training. At inference, depth is either a fixed count or, in Result 2, set per example by a halt rule combined with multi-pass decoding.
 - The base model uses no per-loop conditioning: no loop-index embedding is provided to the core, so an unconditioned shared block receives no external signal indicating which loop it is executing. This is relevant when interpreting the loop dynamics.
@@ -19,12 +27,17 @@ A reference implementation of all variants (vanilla / looped / pcc / gated / …
 
 ## Tasks
 
-The extrapolation experiments use small synthetic sequence tasks for which the result after `r` steps is well-defined, providing a ground-truth target for applying the loop `r` times.
+The extrapolation experiments use small synthetic sequence tasks for which the result after `r` steps is well-defined, giving a ground-truth target for applying the loop `r` times. Whether a task extrapolates past the trained depth depends on a single property: whether its per-step rule depends on the loop index (Result 1).
 
-- **chain** (pointer walk): a random table maps each of `V` symbols to a successor. From a start symbol, the result after `r` steps is the symbol reached after following the pointer `r` times.
-- **parity**: over a bit string, the result after `r` steps is the XOR of the first `r` bits. Its per-step rule depends on the position `r`, which is the reason it serves as a control.
+| task | per-step rule | position-invariant? |
+|---|---|:---:|
+| **chain** (pointer walk) | follow a random symbol→successor table one step | yes |
+| **ListOps** | reduce the innermost `min` / `max` / `sum` operator | yes |
+| **modular** | `x ← (a·x + b) mod P` | yes |
+| **graph BFS** | expand the reachable frontier by one hop | yes |
+| **parity** | XOR in the bit at position `r` | **no** (depends on `r`) |
 
-The full set comprises five tasks (chain, ListOps, modular arithmetic, graph BFS, parity); per-task definitions and results are in [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
+Per-task definitions and results: [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
 
 ## Result 1 — supervision, not architecture, determines length extrapolation
 
@@ -36,8 +49,6 @@ Training the same looped model under two supervision schemes produces opposite b
 The boundary is governed by a position-invariance condition, and it includes a control that fails as predicted. Extrapolation holds only when the per-step rule is a function of state rather than of the loop index. Parity, whose per-step rule depends on the loop index, walls exactly at the trained depth under either supervision scheme. This failing control distinguishes the result from an unfalsifiable observation.
 
 ![length extrapolation under iterative-target supervision](results/length_extrap.png)
-
-Details: [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
 
 ## Result 2 — inference compute can be set per example after training
 
