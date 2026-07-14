@@ -23,19 +23,27 @@ Prelude and coda are ordinary distinct layers; the core is a single weight-tied 
 - N is fixed during training. At inference, depth is either a fixed count or, in Result 2, set per example by a halt rule combined with multi-pass decoding.
 - The base model uses no per-loop conditioning: no loop-index embedding is provided to the core, so an unconditioned shared block receives no external signal indicating which loop it is executing. This is relevant when interpreting the loop dynamics.
 
-A reference implementation of all variants (vanilla / looped / pcc / gated / …) is in [`src/model.py`](src/model.py).
+## Code
+
+| path | contents |
+|---|---|
+| [`src/model.py`](src/model.py) | reference implementation of the architectures (vanilla / looped / pcc / gated / …) |
+| [`src/archlab/`](src/archlab/) | synthetic task generators (`data_*.py`) and the controlled iterative-target experiments behind Result 1 |
+| [`src/pretrain/`](src/pretrain/) | training loop, iterative-target supervision, the LoRA + multi-pass recipe (`stage2_ft.py`), halt rule, and the probes |
 
 ## Tasks
 
 The extrapolation experiments use small synthetic sequence tasks for which the result after `r` steps is well-defined, giving a ground-truth target for applying the loop `r` times. Extrapolation past the trained depth tracks one property — whether the per-step rule depends on the loop index — with graph BFS showing that this condition is necessary but not sufficient (Result 1).
 
-| task | per-step rule | position-invariant? | extrapolates past trained depth? |
-|---|---|:---:|:---|
-| **chain** (pointer walk) | each symbol points to a fixed next symbol; take one hop | yes | yes, to ~24× |
-| **ListOps** | reduce the innermost `min` / `max` / `sum` operator | yes | yes (3–12×) |
-| **modular** | `x ← (a·x + b) mod P` | yes | yes, with noise injection (4–16×) |
-| **graph BFS** | expand the reachable frontier by one hop | yes | partial — capped near 50% by its multi-token state |
-| **parity** | XOR in the bit at position `r` | **no** (depends on `r`) | no — walls at the trained depth |
+These are synthetic generators written for this study, not benchmark datasets with published baselines.
+
+| task | per-step rule | generator | position-invariant? | extrapolates past trained depth? |
+|---|---|---|:---:|:---|
+| **chain** (pointer walk) | each symbol points to a fixed next symbol; take one hop | [`data_chain.py`](src/archlab/data_chain.py) | yes | yes, to ~24× |
+| **arithmetic reduction** | reduce the leftmost `(a, op, b)` triple to one value | [`data_arith.py`](src/archlab/data_arith.py) | yes | yes (3–12×) |
+| **modular** | running sum mod `p`: `s ← (s + v_r) mod p` | experiment scripts | yes | yes, with noise injection (4–16×) |
+| **graph BFS** | expand the reachable set one hop: `next[i] = cur[i] OR ∃j (adj[i,j] AND cur[j])` | [`data_bfs.py`](src/archlab/data_bfs.py) | yes | partial — capped near 50% by its multi-token state |
+| **parity** | cumulative XOR of the first `r` bits | [`data_parity.py`](src/archlab/data_parity.py) | **no** (depends on `r`) | no — walls at the trained depth |
 
 Per-task definitions and full results: [`writeup/01-supervision-lever.md`](writeup/01-supervision-lever.md).
 
