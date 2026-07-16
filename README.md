@@ -73,6 +73,8 @@ Details: [`writeup/02-test-time-compute.md`](writeup/02-test-time-compute.md); t
 
 Two recurrent (**PCC**, **xloop**) and two dense (**vanilla**) models, pretrained on the same 50B-token mixture. Token budgets are **not** matched (column below), so every cross-model difference here is correlational, not causal.
 
+> Why unequal tokens: pretraining ran on a fixed free-GPU compute budget (Kaggle's 30 h/week RTX 6000 grant), not a fixed token count. Each chain was continued across weekly quota windows until it stopped, so architectures with different throughput — and different numbers of completed continuation runs — reached different totals. A fully token-matched retrain is the main follow-up.
+
 | model | params | tokens | val loss ↓ | sharpness κ ↓ | Q/K/V cross-loop cos | HARD50 maj / best-of-K@20 |
 |---|---:|---:|---:|---:|:---:|---:|
 | PCC 356M | 356M | 31B | 1.763 | 32.8 | 0.97 / 0.98 / 0.86 | 52% / 78% |
