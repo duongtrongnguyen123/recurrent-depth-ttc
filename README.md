@@ -69,20 +69,32 @@ This reproduces the adaptive-compute pattern — allocating more inference compu
 
 Details: [`writeup/02-test-time-compute.md`](writeup/02-test-time-compute.md); the minimal recipe is in [`writeup/05-production-recipe.md`](writeup/05-production-recipe.md).
 
-## Cross-architecture results at real-text scale
+## How the four architectures compare (sub-1B, real text)
 
-Four architectures were pretrained on the same 50B-token mixture and compared. Token budgets are **not** matched (column below), so the loss and sharpness comparison is correlational, not causal.
+Two recurrent (**PCC**, **xloop**) and two dense (**vanilla**) models, pretrained on the same 50B-token mixture. Token budgets are **not** matched (column below), so every cross-model difference here is correlational, not causal.
 
-| architecture | params | tokens | val loss ↓ | sharpness κ ↓ |
-|---|---:|---:|---:|---:|
-| PCC 356M | 356M | 31B | 1.763 | 32.8 |
-| xloop 356M | 356M | 25B | 1.795 | 27.6 |
-| vanilla 500M | 508M | 41B | **1.695** | 22.2 |
-| vanilla 912M | 912M | 19B | **1.657** | **12.1** |
+| model | params | tokens | val loss ↓ | sharpness κ ↓ | Q/K/V cross-loop cos | HARD50 maj / best-of-K@20 |
+|---|---:|---:|---:|---:|:---:|---:|
+| PCC 356M | 356M | 31B | 1.763 | 32.8 | 0.97 / 0.98 / 0.86 | 52% / 78% |
+| xloop 356M | 356M | 25B | 1.795 | 27.6 | 0.86 / 0.89 / 0.62 | 50% / 78% |
+| vanilla 500M | 508M | 41B | **1.695** | 22.2 | ≈ 0 (distinct blocks) | **62% / 90%** |
+| vanilla 912M | 912M | 19B | **1.657** | **12.1** | ≈ 0 (distinct blocks) | 90% at K=100 |
 
-The dense models reach both lower validation loss and flatter minima; sharpness (κ) rises monotonically with weight-tying. On reasoning benchmarks, no recurrent variant exceeds a matched dense baseline beyond the run-to-run noise of pretraining — the per-checkpoint GSM8K standard deviation is ±0.6pp, and the cross-architecture gaps fall inside it. On an internal 50-problem multi-step benchmark, sampling-based test-time compute on vanilla 500M matches vanilla 912M (best-of-K 90% for both).
+- **Loss & geometry.** The dense models reach lower validation loss *and* flatter minima; sharpness (κ) rises monotonically with weight-tying strength.
+- **Mechanism.** In the recurrent models, applying the shared `W_Q/W_K/W_V` across loops gives near-identical Q, K, and V (all three cohere) — consistent with the hidden state reaching a fixed point of the core, so loops past a few add little. Distinct-block vanilla has orthogonal projections (cos ≈ 0).
+- **Reasoning.** On GSM8K the per-checkpoint noise is ±0.6pp and all four sit inside it — no architecture wins. On the internal HARD50 multi-step set the dense 500M leads, and its sampling-TTC (best-of-K 90%) matches the 912M.
 
-Results 1–2 above are on synthetic algorithmic tasks, not natural language. Full negatives, retractions, and per-architecture detail: [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md) and [`writeup/08-cross-architecture-phase2.md`](writeup/08-cross-architecture-phase2.md).
+Against the published recurrent-depth baseline (`lm-eval-harness`, n=400/task):
+
+| model | params | ARC-E | ARC-C | HellaSwag | Winogrande |
+|---|---:|:---:|:---:|:---:|:---:|
+| PCC 356M | 356M | 51.5 | 26.8 | 33.7 | 53.5 |
+| vanilla 912M | 912M | 57.5 | 30.2 | 40.8 | 56.5 |
+| Huginn-3.5B (published, 800B tok) | 3.5B | **69.9** | **38.2** | **65.2** | **59.4** |
+
+Huginn saw ≈20–30× the tokens; none of the matched-data models reach it, and the gap tracks token budget rather than architecture.
+
+Results 1–2 are on synthetic algorithmic tasks. Full detail: [`writeup/08-cross-architecture-phase2.md`](writeup/08-cross-architecture-phase2.md) and [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md).
 
 ---
 
