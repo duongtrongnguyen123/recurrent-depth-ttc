@@ -75,8 +75,6 @@ curvature κ at the converged minimum, matched MAX-phase snapshots:
 | vanilla 500M | 22.2 | 1.695 |
 | vanilla 912M | **12.1** | 1.657 |
 
-The raw per-architecture measurements behind this table — validation loss `L*`, the curvature sweep, tokens seen, and parameter counts — are in [`results/pretrain/`](../results/pretrain/) (one JSON per model).
-
 κ decreases monotonically with weight-tying strength, and the sharpest model
 (PCC) has the worst LM loss — exactly what flat-minima theory predicts. **This
 is correlational, not causal**: the token-budget mismatch above is not

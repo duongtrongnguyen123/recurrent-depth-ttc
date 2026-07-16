@@ -69,11 +69,20 @@ This reproduces the adaptive-compute pattern — allocating more inference compu
 
 Details: [`writeup/02-test-time-compute.md`](writeup/02-test-time-compute.md); the minimal recipe is in [`writeup/05-production-recipe.md`](writeup/05-production-recipe.md).
 
-## Limitations
+## Cross-architecture results at real-text scale
 
-At sub-1B parameters on natural language (four architectures trained on a 50B-token matched-data mixture), no recurrent variant exceeded a matched dense baseline beyond the run-to-run variance of pretraining: the per-checkpoint GSM8K standard deviation is ±0.6pp, and the cross-architecture differences fall within it. The extrapolation results above are on synthetic algorithmic tasks, not natural language.
+Four architectures were pretrained on the same 50B-token mixture and compared. Token budgets are **not** matched (column below), so the loss and sharpness comparison is correlational, not causal.
 
-Full negative results, retractions, and scope limits are in [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md) and [`writeup/08-cross-architecture-phase2.md`](writeup/08-cross-architecture-phase2.md).
+| architecture | params | tokens | val loss ↓ | sharpness κ ↓ |
+|---|---:|---:|---:|---:|
+| PCC 356M | 356M | 31B | 1.763 | 32.8 |
+| xloop 356M | 356M | 25B | 1.795 | 27.6 |
+| vanilla 500M | 508M | 41B | **1.695** | 22.2 |
+| vanilla 912M | 912M | 19B | **1.657** | **12.1** |
+
+The dense models reach both lower validation loss and flatter minima; sharpness (κ) rises monotonically with weight-tying. On reasoning benchmarks, no recurrent variant exceeds a matched dense baseline beyond the run-to-run noise of pretraining — the per-checkpoint GSM8K standard deviation is ±0.6pp, and the cross-architecture gaps fall inside it. On an internal 50-problem multi-step benchmark, sampling-based test-time compute on vanilla 500M matches vanilla 912M (best-of-K 90% for both).
+
+Results 1–2 above are on synthetic algorithmic tasks, not natural language. Full negatives, retractions, and per-architecture detail: [`NEGATIVE_RESULTS.md`](NEGATIVE_RESULTS.md) and [`writeup/08-cross-architecture-phase2.md`](writeup/08-cross-architecture-phase2.md).
 
 ---
 
